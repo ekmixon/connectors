@@ -131,13 +131,12 @@ class ObservationFactory(NamedTuple):
         confidence = config.confidence
         object_markings = config.object_markings
 
-        create_observables = config.create_observables
         create_indicators = config.create_indicators
 
         # Create an observable.
         observable = None
 
-        if create_observables:
+        if create_observables := config.create_observables:
             observable_properties = ObservableProperties(
                 value=value,
                 created_by=created_by,
@@ -179,9 +178,7 @@ class ObservationFactory(NamedTuple):
                 )
                 indicator_based_on_observable = based_on_relationship[0]
 
-        observation = Observation(observable, indicator, indicator_based_on_observable)
-
-        return observation
+        return Observation(observable, indicator, indicator_based_on_observable)
 
 
 OBSERVATION_FACTORY_IP_ADDRESS = ObservationFactory(

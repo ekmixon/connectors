@@ -39,7 +39,7 @@ searchable_types = [
 class FireEye:
     def __init__(self):
         # Instantiate the connector helper from config
-        config_file_path = os.path.dirname(os.path.abspath(__file__)) + "/config.yml"
+        config_file_path = f"{os.path.dirname(os.path.abspath(__file__))}/config.yml"
         config = (
             yaml.load(open(config_file_path), Loader=yaml.FullLoader)
             if os.path.isfile(config_file_path)
@@ -96,10 +96,13 @@ class FireEye:
 
     def _get_token(self):
         r = requests.post(
-            self.fireeye_api_url + "/token",
-            auth=HTTPBasicAuth(self.fireeye_api_v3_public, self.fireeye_api_v3_secret),
+            f"{self.fireeye_api_url}/token",
+            auth=HTTPBasicAuth(
+                self.fireeye_api_v3_public, self.fireeye_api_v3_secret
+            ),
             data={"grant_type": "client_credentials"},
         )
+
         if r.status_code != 200:
             raise ValueError("FireEye Authentication failed")
         data = r.json()
@@ -107,12 +110,13 @@ class FireEye:
 
     def _search(self, stix_id, retry=False):
         time.sleep(3)
-        self.helper.log_info("Searching for " + stix_id)
+        self.helper.log_info(f"Searching for {stix_id}")
         headers = {
-            "authorization": "Bearer " + self.auth_token,
+            "authorization": f"Bearer {self.auth_token}",
             "accept": "application/vnd.oasis.stix+json; version=2.1",
             "x-app-name": "opencti-connector-5.0.3",
         }
+
         body = """
             {
                 "queries": [
@@ -129,16 +133,19 @@ class FireEye:
             return None
         body = body.replace("ENTITY_TYPE", entity_type).replace("ENTITY_ID", stix_id)
         r = requests.post(
-            self.fireeye_api_url + "/collections/search", data=body, headers=headers
+            f"{self.fireeye_api_url}/collections/search",
+            data=body,
+            headers=headers,
         )
+
         if r.status_code == 200:
             return r
-        elif (r.status_code == 401 or r.status_code == 403) and not retry:
+        elif r.status_code in [401, 403] and not retry:
             self._get_token()
             return self._search(stix_id, True)
-        elif r.status_code == 204 or r.status_code == 205:
+        elif r.status_code in [204, 205]:
             return None
-        elif r.status_code == 401 or r.status_code == 403:
+        elif r.status_code in [401, 403]:
             raise ValueError("Query failed, permission denied")
         else:
             print(r)
@@ -146,46 +153,48 @@ class FireEye:
 
     def _query(self, url, retry=False):
         headers = {
-            "authorization": "Bearer " + self.auth_token,
+            "authorization": f"Bearer {self.auth_token}",
             "accept": "application/vnd.oasis.stix+json; version=2.1",
             "x-app-name": "opencti-connector-5.0.3",
         }
+
         r = requests.get(url, headers=headers)
         if r.status_code == 200:
             return r
-        elif (r.status_code == 401 or r.status_code == 403) and not retry:
+        elif r.status_code in [401, 403] and not retry:
             self._get_token()
             return self._query(url, True)
-        elif r.status_code == 401 or r.status_code == 403:
+        elif r.status_code in [401, 403]:
             raise ValueError("Query failed, permission denied")
         else:
             raise ValueError("An unknown error occurred")
 
     def _send_entity(self, bundle, work_id):
-        if "objects" in bundle and len(bundle) > 0:
-            final_objects = []
-            for stix_object in bundle["objects"]:
-                if stix_object["type"] == "threat-actor":
-                    stix_object["type"] = "intrusion-set"
-                    stix_object["id"] = stix_object["id"].replace(
-                        "threat-actor", "intrusion-set"
-                    )
-                if "created_by_ref" not in stix_object:
-                    stix_object["created_by_ref"] = self.identity["standard_id"]
-                if stix_object["type"] != "marking-definition":
-                    stix_object["object_marking_refs"] = [
-                        "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
-                    ]
-                    stix_object["object_marking_refs"].append(
-                        self.marking["standard_id"]
-                    )
-                final_objects.append(stix_object)
-            final_bundle = {"type": "bundle", "objects": final_objects}
-            self.helper.send_stix2_bundle(
-                json.dumps(final_bundle),
-                update=self.update_existing_data,
-                work_id=work_id,
-            )
+        if "objects" not in bundle or len(bundle) <= 0:
+            return
+        final_objects = []
+        for stix_object in bundle["objects"]:
+            if stix_object["type"] == "threat-actor":
+                stix_object["type"] = "intrusion-set"
+                stix_object["id"] = stix_object["id"].replace(
+                    "threat-actor", "intrusion-set"
+                )
+            if "created_by_ref" not in stix_object:
+                stix_object["created_by_ref"] = self.identity["standard_id"]
+            if stix_object["type"] != "marking-definition":
+                stix_object["object_marking_refs"] = [
+                    "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+                ]
+                stix_object["object_marking_refs"].append(
+                    self.marking["standard_id"]
+                )
+            final_objects.append(stix_object)
+        final_bundle = {"type": "bundle", "objects": final_objects}
+        self.helper.send_stix2_bundle(
+            json.dumps(final_bundle),
+            update=self.update_existing_data,
+            work_id=work_id,
+        )
 
     def _import_collection(
         self, collection, last_id_modified_timestamp=None, last_id=None, work_id=None

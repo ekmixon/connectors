@@ -10,7 +10,7 @@ from pycti import OpenCTIConnectorHelper, get_config_variable, OpenCTIApiClient
 
 class LastInfoSec:
     def __init__(self):
-        config_file_path = os.path.dirname(os.path.abspath(__file__)) + "/config.yml"
+        config_file_path = f"{os.path.dirname(os.path.abspath(__file__))}/config.yml"
         config = (
             yaml.load(open(config_file_path), Loader=yaml.FullLoader)
             if os.path.isfile(config_file_path)
@@ -99,7 +99,7 @@ class LastInfoSec:
                 self.helper.log_info("Connector stop")
                 exit(0)
             except Exception as e:
-                self.helper.log_error("run:" + str(e))
+                self.helper.log_error(f"run:{str(e)}")
                 time.sleep(60)
 
 

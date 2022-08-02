@@ -113,9 +113,7 @@ class PulseImporter:
                 self._info(
                     "Store state: {0}: {1}", count, latest_pulse_modified_datetime
                 )
-                new_state.update(
-                    self._create_pulse_state(latest_pulse_modified_datetime)
-                )
+                new_state |= self._create_pulse_state(latest_pulse_modified_datetime)
                 self._set_state(new_state)
 
         imported = pulse_count - failed
@@ -260,8 +258,7 @@ class PulseImporter:
             self._create_filter("aliases", name),
         ]
         for _filter in filters:
-            malwares = self.helper.api.malware.list(filters=_filter)
-            if malwares:
+            if malwares := self.helper.api.malware.list(filters=_filter):
                 if len(malwares) > 1:
                     self._info("More then one malware for '{0}'", name)
                 malware = malwares[0]

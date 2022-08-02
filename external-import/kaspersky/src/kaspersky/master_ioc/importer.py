@@ -74,12 +74,14 @@ class MasterIOCImporter(BaseImporter):
             )
 
         master_ioc_fetch_weekday = self.master_ioc_fetch_weekday
-        if master_ioc_fetch_weekday is not None:
-            if not is_current_weekday_before_datetime(
+        if (
+            master_ioc_fetch_weekday is not None
+            and not is_current_weekday_before_datetime(
                 master_ioc_fetch_weekday, latest_master_ioc_datetime
-            ):
-                self._info("It is not time to fetch the Master IOC yet.")
-                return self._create_state(latest_master_ioc_datetime)
+            )
+        ):
+            self._info("It is not time to fetch the Master IOC yet.")
+            return self._create_state(latest_master_ioc_datetime)
 
         openioc_csv = self._fetch_master_ioc()
 

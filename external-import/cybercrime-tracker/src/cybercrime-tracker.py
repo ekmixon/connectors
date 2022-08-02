@@ -14,9 +14,7 @@ from urllib.parse import urlparse, quote
 class Cybercrimetracker:
     def __init__(self):
         # Instantiate the connector helper from config
-        config_file_path = "{}/config.yml".format(
-            os.path.dirname(os.path.abspath(__file__))
-        )
+        config_file_path = f"{os.path.dirname(os.path.abspath(__file__))}/config.yml"
         config = (
             yaml.load(open(config_file_path), Loader=yaml.FullLoader)
             if os.path.isfile(config_file_path)
@@ -85,21 +83,18 @@ class Cybercrimetracker:
         Note: CYBERCRIME-TRACKER.NET does not provide the protocol in the url
         as such we always assume 'http'.
         """
-        parsed_entry = {}
-
         pattern = (
             r"(?:\[%{GREEDYDATA:cwhqid}\]\s+Type:\s+%{GREEDYDATA:type}"
             + r"\s+-%{GREEDYDATA}:\s+%{IP:ip}|"
             + r"\[%{GREEDYDATA:cwhqid}\]\s+Type:\s+%{GREEDYDATA:type})"
         )
 
-        entry_summary = Grok(pattern).match(entry["summary"])
+        if entry_summary := Grok(pattern).match(entry["summary"]):
+            parsed_entry = {"date": self._time_to_datetime(entry["published_parsed"])}
 
-        if entry_summary:
-            parsed_entry["date"] = self._time_to_datetime(entry["published_parsed"])
             parsed_entry["type"] = entry_summary["type"]
             parsed_entry["ext_link"] = entry["link"]
-            parsed_entry["url"] = "http://{}".format(quote(entry["title"]))
+            parsed_entry["url"] = f'http://{quote(entry["title"])}'
             hostname = urlparse(parsed_entry["url"]).hostname
 
             if entry_summary["ip"] is None:
@@ -108,27 +103,29 @@ class Cybercrimetracker:
                 parsed_entry["ip"] = entry_summary["ip"]
                 parsed_entry["domain"] = hostname
 
-            self.helper.log_info("Parsed entry: {}".format(entry["title"]))
+            self.helper.log_info(f'Parsed entry: {entry["title"]}')
 
             return parsed_entry
         else:
-            self.helper.log_error("Could not parse: {}".format(entry["title"]))
+            self.helper.log_error(f'Could not parse: {entry["title"]}')
             return False
 
     def gen_indicator_pattern(self, parsed_entry):
 
-        if "domain" in parsed_entry.keys():
-            indicator_pattern = (
-                "[ipv4-addr:value='{}'] ".format(parsed_entry["ip"])
-                + "AND [url:value='{}'] ".format(parsed_entry["url"])
-                + "AND [domain-name:value='{}']".format(parsed_entry["domain"])
+        return (
+            (
+                (
+                    f"""[ipv4-addr:value='{parsed_entry["ip"]}'] """
+                    + f"""AND [url:value='{parsed_entry["url"]}'] """
+                )
+                + f"""AND [domain-name:value='{parsed_entry["domain"]}']"""
             )
-        else:
-            indicator_pattern = "[ipv4-addr:value='{}'] ".format(
-                parsed_entry["ip"]
-            ) + "AND [url:value='{}']".format(parsed_entry["url"])
-
-        return indicator_pattern
+            if "domain" in parsed_entry.keys()
+            else (
+                f"""[ipv4-addr:value='{parsed_entry["ip"]}'] """
+                + f"""AND [url:value='{parsed_entry["url"]}']"""
+            )
+        )
 
     def run(self):
         self.helper.log_info("Fetching data CYBERCRIME-TRACKER.NET...")

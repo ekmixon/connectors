@@ -82,8 +82,7 @@ class ActorBundleBuilder:
 
     def _create_external_references(self) -> List[ExternalReference]:
         external_references = []
-        actor_url = self.actor.url
-        if actor_url:
+        if actor_url := self.actor.url:
             external_reference = create_external_reference(
                 self.source_name, str(self.actor.id), actor_url
             )
@@ -137,11 +136,8 @@ class ActorBundleBuilder:
         aliases = [name.replace(" ", "")]
 
         for known_alias in known_as.split(","):
-            known_alias = known_alias.strip()
-            if not known_alias:
-                continue
-
-            aliases.append(known_alias)
+            if known_alias := known_alias.strip():
+                aliases.append(known_alias)
 
         # Remove duplicates.
         aliases = list(dict.fromkeys(aliases))
@@ -172,7 +168,7 @@ class ActorBundleBuilder:
 
             motivations.append(motivation)
 
-        if len(motivations) == 0:
+        if not motivations:
             return None, None
         elif len(motivations) == 1:
             return motivations[0], None

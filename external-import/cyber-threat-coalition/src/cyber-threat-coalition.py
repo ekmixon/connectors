@@ -37,7 +37,7 @@ class CyberThreatCoalition:
 
     def __init__(self):
         # Instantiate the connector helper from config
-        config_file_path = os.path.dirname(os.path.abspath(__file__)) + "/config.yml"
+        config_file_path = f"{os.path.dirname(os.path.abspath(__file__))}/config.yml"
         config = (
             yaml.load(open(config_file_path), Loader=yaml.FullLoader)
             if os.path.isfile(config_file_path)
@@ -94,8 +94,6 @@ class CyberThreatCoalition:
         work_id = self.helper.api.work.initiate_work(
             self.helper.connect_id, friendly_name
         )
-        bundle_objects = list()
-
         # create an identity for the coalition team
         organization = stix2.Identity(
             id=OpenCTIStix2Utils.generate_random_stix_id("identity"),
@@ -105,13 +103,13 @@ class CyberThreatCoalition:
             "cyber threat intelligence during the COVID-19 crisis time",
         )
 
-        # add organization in bundle
-        bundle_objects.append(organization)
-        report_object_refs = list()
+        bundle_objects = [organization]
+        report_object_refs = []
 
+        pattern_type = "stix"
         for collection in ["domain", "ip", "url", "hash"]:
             # fetch backlist
-            url = self.cyber_threat_coalition_base_url + "/" + str(collection) + ".txt"
+            url = f"{self.cyber_threat_coalition_base_url}/{str(collection)}.txt"
             response = requests.get(url=url)
             if response.status_code != 200:
                 raise Exception(
@@ -119,7 +117,6 @@ class CyberThreatCoalition:
                     collection,
                     response.status_code,
                 )
-            pattern_type = "stix"
             labels = ["COVID-19", "malicious-activity"]
             # parse content
             for data in response.iter_lines(decode_unicode=True):
@@ -187,14 +184,14 @@ class CyberThreatCoalition:
                             bundle_objects.append(relationship)
                             report_object_refs.append(relationship["id"])
 
-        # create a global threat report
-        report_uuid = "report--552b3ae6-8522-409d-8b72-a739bc1926aa"
         report_external_reference = stix2.ExternalReference(
             source_name="Cyber Threat Coalition",
             url="https://www.cyberthreatcoalition.org",
             external_id="COVID19-CTC",
         )
         if report_object_refs:
+            # create a global threat report
+            report_uuid = "report--552b3ae6-8522-409d-8b72-a739bc1926aa"
             stix_report = stix2.Report(
                 id=report_uuid,
                 name="COVID-19 Cyber Threat Coalition (CTC) BlackList",
@@ -221,9 +218,7 @@ class CyberThreatCoalition:
 
     def _load_state(self) -> Dict[str, Any]:
         current_state = self.helper.get_state()
-        if not current_state:
-            return {}
-        return current_state
+        return current_state or {}
 
     def _is_scheduled(self, last_run: Optional[int], current_time: int) -> bool:
         if last_run is None:
@@ -235,9 +230,7 @@ class CyberThreatCoalition:
     def _get_state_value(
         state: Optional[Mapping[str, Any]], key: str, default: Optional[Any] = None
     ) -> Any:
-        if state is not None:
-            return state.get(key, default)
-        return default
+        return state.get(key, default) if state is not None else default
 
     @staticmethod
     def _current_unix_timestamp() -> int:

@@ -255,8 +255,7 @@ class ReportImporter(BaseImporter):
             self._create_filter("aliases", name),
         ]
         for _filter in filters:
-            malwares = self.helper.api.malware.list(filters=_filter)
-            if malwares:
+            if malwares := self.helper.api.malware.list(filters=_filter):
                 if len(malwares) > 1:
                     self._info("More then one malware for '{0}'", name)
                 malware = malwares[0]

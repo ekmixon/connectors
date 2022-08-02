@@ -29,8 +29,10 @@ def convert(filename, output="output.json"):
 
             # Create external references
             external_reference = ExternalReference(
-                source_name="NIST NVD", url="https://nvd.nist.gov/vuln/detail/" + name
+                source_name="NIST NVD",
+                url=f"https://nvd.nist.gov/vuln/detail/{name}",
             )
+
             external_references = [external_reference]
             if (
                 "references" in cves["cve"]

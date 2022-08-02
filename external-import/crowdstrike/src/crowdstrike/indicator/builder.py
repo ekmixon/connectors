@@ -161,14 +161,15 @@ class IndicatorBundleBuilder:
 
     def _create_intrusion_sets(self) -> List[IntrusionSet]:
         indicator_actors = self.indicator.actors
-        if not indicator_actors:
-            return []
-
-        return create_intrusion_sets_from_names(
-            indicator_actors,
-            created_by=self.author,
-            confidence=self.confidence_level,
-            object_markings=self.object_markings,
+        return (
+            create_intrusion_sets_from_names(
+                indicator_actors,
+                created_by=self.author,
+                confidence=self.confidence_level,
+                object_markings=self.object_markings,
+            )
+            if indicator_actors
+            else []
         )
 
     def _create_kill_chain_phases(self) -> List[KillChainPhase]:
@@ -302,11 +303,8 @@ class IndicatorBundleBuilder:
 
         indicator_labels = self.indicator.labels
         for indicator_label in indicator_labels:
-            label = indicator_label.name
-            if not label:
-                continue
-
-            labels.append(label)
+            if label := indicator_label.name:
+                labels.append(label)
 
         return labels
 
@@ -321,9 +319,7 @@ class IndicatorBundleBuilder:
         observable_properties = self._create_observable_properties(
             indicator_value, labels, score
         )
-        observable = self.observation_factory.create_observable(observable_properties)
-
-        return observable
+        return self.observation_factory.create_observable(observable_properties)
 
     def _create_observable_properties(
         self,

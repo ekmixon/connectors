@@ -160,10 +160,10 @@ class IndicatorGroupBundleBuilder:
 
         return create_report(
             name,
-            created,
+            modified,
             objects,
             created_by=created_by,
-            created=created,
+            modified=modified,
             modified=modified,
             report_types=[report_type],
             confidence=confidence_level,

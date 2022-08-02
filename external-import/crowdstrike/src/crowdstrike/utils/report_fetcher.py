@@ -101,8 +101,7 @@ class ReportFetcher:
 
         response = self.reports_api.get_entities(ids, fields)
 
-        errors = response.errors
-        if errors:
+        if errors := response.errors:
             self._error("Fetching report completed with errors")
             for error in errors:
                 self._error("Error: %s (code: %d)", error.message, error.code)

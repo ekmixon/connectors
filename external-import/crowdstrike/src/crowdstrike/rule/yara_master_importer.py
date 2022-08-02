@@ -192,11 +192,10 @@ class YaraMasterImporter(BaseImporter):
             rule_updated = self._try_updating(yara_rule)
             if rule_updated is None:
                 new_yara_rules.append(yara_rule)
+            elif rule_updated:
+                updated += 1
             else:
-                if rule_updated:
-                    updated += 1
-                else:
-                    not_updated += 1
+                not_updated += 1
 
         existing = updated + not_updated
 
@@ -330,10 +329,7 @@ class YaraMasterImporter(BaseImporter):
             new_rule.last_modified,
         )
 
-        if new_rule.last_modified > current_rule.last_modified:
-            return True
-
-        return False
+        return new_rule.last_modified > current_rule.last_modified
 
     def _update_indicator_pattern(
         self, indicator_id: str, new_indicator_pattern: str
@@ -342,9 +338,7 @@ class YaraMasterImporter(BaseImporter):
             id=indicator_id,
             input={"key": self._KEY_INDICATOR_PATTERN, "value": new_indicator_pattern},
         )
-        if updated is None:
-            return False
-        return updated.get(self._KEY_ID) == indicator_id
+        return False if updated is None else updated.get(self._KEY_ID) == indicator_id
 
     def _get_reports_by_code(self, codes: List[str]) -> List[FetchedReport]:
         try:

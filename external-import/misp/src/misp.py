@@ -74,7 +74,7 @@ FILETYPES = ["file-name", "file-md5", "file-sha1", "file-sha256"]
 class Misp:
     def __init__(self):
         # Instantiate the connector helper from config
-        config_file_path = os.path.dirname(os.path.abspath(__file__)) + "/config.yml"
+        config_file_path = f"{os.path.dirname(os.path.abspath(__file__))}/config.yml"
         config = (
             yaml.load(open(config_file_path), Loader=yaml.FullLoader)
             if os.path.isfile(config_file_path)
@@ -206,16 +206,18 @@ class Misp:
                 not_parameters = []
 
                 if self.misp_import_tags:
-                    for tag in self.misp_import_tags.split(","):
-                        or_parameters.append(tag.strip())
+                    or_parameters.extend(tag.strip() for tag in self.misp_import_tags.split(","))
                 if self.misp_import_tags_not:
-                    for ntag in self.misp_import_tags_not.split(","):
-                        not_parameters.append(ntag.strip())
+                    not_parameters.extend(
+                        ntag.strip()
+                        for ntag in self.misp_import_tags_not.split(",")
+                    )
 
                 complex_query_tag = self.misp.build_complex_query(
-                    or_parameters=or_parameters if len(or_parameters) > 0 else None,
-                    not_parameters=not_parameters if len(not_parameters) > 0 else None,
+                    or_parameters=or_parameters or None,
+                    not_parameters=not_parameters or None,
                 )
+
 
             # If import from a specific date
             import_from_date = None
@@ -223,7 +225,7 @@ class Misp:
                 import_from_date = datetime.fromisoformat(self.misp_import_from_date)
 
             # Prepare the query
-            kwargs = dict()
+            kwargs = {}
             if complex_query_tag is not None:
                 kwargs["tags"] = complex_query_tag
             if last_run is not None:
@@ -241,9 +243,7 @@ class Misp:
             while True:
                 kwargs["limit"] = 50
                 kwargs["page"] = current_page
-                self.helper.log_info(
-                    "Fetching MISP events with args: " + json.dumps(kwargs)
-                )
+                self.helper.log_info(f"Fetching MISP events with args: {json.dumps(kwargs)}")
                 kwargs = json.loads(json.dumps(kwargs))
                 events = []
                 try:
@@ -255,7 +255,7 @@ class Misp:
                     except Exception as e:
                         self.helper.log_error(str(e))
 
-                self.helper.log_info("MISP returned " + str(len(events)) + " events.")
+                self.helper.log_info(f"MISP returned {len(events)} events.")
                 number_events = number_events + len(events)
                 # Break if no more result
                 if len(events) == 0:

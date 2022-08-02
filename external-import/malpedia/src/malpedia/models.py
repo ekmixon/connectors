@@ -37,10 +37,7 @@ class Family(BaseModel):
     @property
     def main_name(self) -> str:
         """Malpedia names list."""
-        if self.common_name == "":
-            return self.malpedia_name
-        else:
-            return self.common_name
+        return self.malpedia_name if self.common_name == "" else self.common_name
 
 
 class YaraRule(BaseModel):
@@ -56,11 +53,10 @@ class YaraRule(BaseModel):
         extract = re.search(r"([0-9]{4}\-[0-9]{2}\-[0-9]{2})", self.raw_rule)
         if extract is None:
             return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S+00:00")
-        else:
-            try:
-                return dp.isoparse(extract.group(1)).strftime("%Y-%m-%dT%H:%M:%S+00:00")
-            except Exception:
-                return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S+00:00")
+        try:
+            return dp.isoparse(extract[1]).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+        except Exception:
+            return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
 
 class Sample(BaseModel):

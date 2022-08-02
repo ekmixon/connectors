@@ -67,7 +67,7 @@ class KnowledgeImporter:
 
     def run(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
         """Run importer."""
-        self.helper.log_info("running Knowledge importer with state: " + str(state))
+        self.helper.log_info(f"running Knowledge importer with state: {str(state)}")
 
         self._load_opencti_tlp()
         self._process_families()
@@ -94,7 +94,7 @@ class KnowledgeImporter:
                 )
                 continue
 
-            self.helper.log_info("Processing malware family: " + fam.malpedia_name)
+            self.helper.log_info(f"Processing malware family: {fam.malpedia_name}")
 
             malware_id = self._add_malware_family(fam)
 
@@ -106,9 +106,9 @@ class KnowledgeImporter:
             # Yara Rules
             ######################################################
 
-            yara_rules = self.api_client.query("get/yara/" + family_id)
+            yara_rules = self.api_client.query(f"get/yara/{family_id}")
 
-            self.helper.log_info("importing yara rules for: " + family_id)
+            self.helper.log_info(f"importing yara rules for: {family_id}")
 
             self._add_yara_rules_for_malware_id(malware_id, fam, yara_rules)
 
@@ -116,7 +116,7 @@ class KnowledgeImporter:
             # Samples
             ######################################################
             if not self.api_client.unauthenticated:
-                samples = self.api_client.query("list/samples/" + family_id)
+                samples = self.api_client.query(f"list/samples/{family_id}")
                 self.helper.log_info(
                     f"creating hash indicators for {fam.malpedia_name} samples"
                 )
@@ -139,7 +139,7 @@ class KnowledgeImporter:
                 self.helper.log_error(f"error marshaling actor data for {actor}: {e}")
                 continue
 
-            self.helper.log_info("Processing actor: " + act.value)
+            self.helper.log_info(f"Processing actor: {act.value}")
 
             # Use all names we have to guess an existing intrusion set name
             guessed_intrusion_set = self._guess_intrusion_set_from_tags(
@@ -150,7 +150,7 @@ class KnowledgeImporter:
                 continue
 
             if act.description == "":
-                act.description = "Malpedia library entry for " + act.value
+                act.description = f"Malpedia library entry for {act.value}"
 
             # If we cannot guess an intrusion set AND we are allowed to do so we
             # create the Intrusion Set. Only update_data can override.
@@ -160,10 +160,11 @@ class KnowledgeImporter:
                 intrusion_set = self.helper.api.intrusion_set.create(
                     name=act.value,
                     description=act.description,
-                    aliases=act.meta.synonyms if act.meta.synonyms else None,
+                    aliases=act.meta.synonyms or None,
                     createdBy=self.organization["id"],
                     update=self.update_data,
                 )
+
 
                 self.helper.api.stix_core_relationship.create(
                     fromId=intrusion_set["id"],
@@ -229,7 +230,7 @@ class KnowledgeImporter:
                 self.helper.log_error(f"error marshaling sample data for {sample}: {e}")
                 continue
 
-            self.helper.log_info("Processing sample: " + sam.sha256)
+            self.helper.log_info(f"Processing sample: {sam.sha256}")
 
             # Sanity check the hash value
             if sam.sha256 == "" or sam.sha256 is None or len(sam.sha256) != 64:
@@ -356,20 +357,20 @@ class KnowledgeImporter:
                     fromId=indicator["id"],
                     toId=malware_id,
                     relationship_type="indicates",
-                    description="Yara rule for " + fam.main_name,
+                    description=f"Yara rule for {fam.main_name}",
                     confidence=self.confidence_level,
                     createdBy=self.organization["id"],
                     update=self.update_data,
                 )
 
     def _add_malware_family(self, fam: Family) -> str:
-        self.helper.log_info("Processing malware family: " + fam.malpedia_name)
+        self.helper.log_info(f"Processing malware family: {fam.malpedia_name}")
 
         # Use all names we have to guess an existing malware name
         guessed_malwares = self._guess_malwares_from_tags(fam.all_names)
 
         if fam.description == "" or fam.description is None:
-            fam.description = "Malpedia entry for " + fam.malpedia_name
+            fam.description = f"Malpedia entry for {fam.malpedia_name}"
 
         marking_tlp_white = self.helper.api.marking_definition.read(id=TLP_WHITE["id"])
 
@@ -398,7 +399,7 @@ class KnowledgeImporter:
         return guessed_malwares_list[0]
 
     def _add_refs_for_id(self, refs: list, obj_id: str) -> None:
-        if refs == {} or obj_id == "":
+        if refs == {} or not obj_id:
             return None
 
         for ref in refs:
@@ -484,15 +485,14 @@ class KnowledgeImporter:
         return intrusion_sets
 
     def _fetch_malware_id_by_name(self, name: str) -> Optional[str]:
-        if name == "":
+        if not name:
             return None
         filters = [
             self._create_filter("name", name),
             self._create_filter("aliases", name),
         ]
         for fil in filters:
-            malwares = self.helper.api.malware.list(filters=fil)
-            if malwares:
+            if malwares := self.helper.api.malware.list(filters=fil):
                 if len(malwares) > 1:
                     self._info("More then one malware for '{0}'", name)
                 malware = malwares[0]
@@ -500,15 +500,14 @@ class KnowledgeImporter:
         return None
 
     def _fetch_intrusion_set_id_by_name(self, name: str) -> Optional[str]:
-        if name == "":
+        if not name:
             return None
         filters = [
             self._create_filter("name", name),
             self._create_filter("aliases", name),
         ]
         for fil in filters:
-            intrusion_sets = self.helper.api.intrusion_set.list(filters=fil)
-            if intrusion_sets:
+            if intrusion_sets := self.helper.api.intrusion_set.list(filters=fil):
                 if len(intrusion_sets) > 1:
                     self._info("More then one intrusion set for '{0}'", name)
                 intrusion_set = intrusion_sets[0]

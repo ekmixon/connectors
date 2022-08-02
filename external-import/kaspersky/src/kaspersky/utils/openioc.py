@@ -150,10 +150,7 @@ def _get_context(indicator_item: Element) -> Element:
 
 def _get_context_attribute(indicator_item: Element, attribute: str) -> Optional[str]:
     ctx = _get_context(indicator_item)
-    if ctx is None:
-        return None
-
-    return ctx.attrib.get(attribute)
+    return None if ctx is None else ctx.attrib.get(attribute)
 
 
 def _get_context_document(indicator_item: Element) -> Optional[str]:
@@ -175,10 +172,7 @@ def _get_content(indicator_item: Element) -> Element:
 
 def _get_content_attribute(indicator_item: Element, attribute: str) -> Optional[str]:
     content = _get_content(indicator_item)
-    if content is None:
-        return None
-
-    return content.attrib.get(attribute)
+    return None if content is None else content.attrib.get(attribute)
 
 
 def _get_content_type(indicator_item: Element) -> Optional[str]:
@@ -187,10 +181,7 @@ def _get_content_type(indicator_item: Element) -> Optional[str]:
 
 def _get_content_text(indicator_item: Element) -> Optional[str]:
     content = _get_content(indicator_item)
-    if content is None:
-        return None
-
-    return content.text
+    return None if content is None else content.text
 
 
 def _convert_indicators(indicators: List[Element]) -> List[Mapping[str, Any]]:
@@ -241,8 +232,7 @@ def _convert_indicator_item(indicator_item: Element) -> Mapping[str, Any]:
 
 
 def _convert_indicator_items(indicator_items: List[Element]) -> List[Mapping[str, Any]]:
-    converted = [_convert_indicator_item(x) for x in indicator_items]
-    return converted
+    return [_convert_indicator_item(x) for x in indicator_items]
 
 
 def _parse_xml(xml: bytes) -> Element:
@@ -282,10 +272,7 @@ def _get_description(ioc: Element) -> Optional[str]:
     tag = _tag_with_ns("description")
 
     description = ioc.find(tag)
-    if description is None:
-        return None
-
-    return description.text
+    return None if description is None else description.text
 
 
 def _get_authored_date(ioc: Element) -> Optional[datetime]:

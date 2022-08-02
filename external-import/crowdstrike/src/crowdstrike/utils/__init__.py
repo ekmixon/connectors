@@ -172,8 +172,8 @@ def paginate(
 
     @functools.wraps(func)
     def wrapper_paginate(
-        *args: Any, limit: int = 25, **kwargs: Any
-    ) -> Generator[List[T], None, None]:
+            *args: Any, limit: int = 25, **kwargs: Any
+        ) -> Generator[List[T], None, None]:
         logger.info(
             "func: %s, limit: %s, args: %s, kwargs: %s",
             func.__name__,
@@ -212,7 +212,7 @@ def paginate(
                     _meta_total,
                 )
 
-                _offset = _offset + _limit
+                _offset += _limit
                 _total = _meta_total
 
             resources = response.resources
@@ -231,9 +231,7 @@ def paginate(
 
 def _next_batch(limit: int, offset: int, total: Optional[int]) -> bool:
     """Determine if there is next batch to fetch."""
-    if total is None:
-        return True
-    return (total - offset) > 0
+    return True if total is None else (total - offset) > 0
 
 
 def get_tlp_string_marking_definition(tlp: str) -> MarkingDefinition:
@@ -499,10 +497,7 @@ def create_sector_from_entity(
 ) -> Optional[Identity]:
     """Create a sector from an entity."""
     name = entity.value
-    if name is None or not name:
-        return None
-
-    return create_sector(name, created_by)
+    return None if name is None or not name else create_sector(name, created_by)
 
 
 def create_sectors_from_entities(

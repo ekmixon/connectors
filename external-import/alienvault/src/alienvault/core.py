@@ -186,10 +186,15 @@ class AlienVault:
 
     @staticmethod
     def _read_configuration() -> Dict[str, str]:
-        config_file_path = os.path.dirname(os.path.abspath(__file__)) + "/../config.yml"
-        if not os.path.isfile(config_file_path):
-            return {}
-        return yaml.load(open(config_file_path), Loader=yaml.FullLoader)
+        config_file_path = (
+            f"{os.path.dirname(os.path.abspath(__file__))}/../config.yml"
+        )
+
+        return (
+            yaml.load(open(config_file_path), Loader=yaml.FullLoader)
+            if os.path.isfile(config_file_path)
+            else {}
+        )
 
     @classmethod
     def _get_configuration(
@@ -197,10 +202,9 @@ class AlienVault:
     ) -> Any:
         yaml_path = cls._get_yaml_path(config_name)
         env_var_name = cls._get_environment_variable_name(yaml_path)
-        config_value = get_config_variable(
+        return get_config_variable(
             env_var_name, yaml_path, config, isNumber=is_number
         )
-        return config_value
 
     @staticmethod
     def _get_yaml_path(config_name: str) -> List[str]:
@@ -284,17 +288,13 @@ class AlienVault:
 
     def _load_state(self) -> Dict[str, Any]:
         current_state = self.helper.get_state()
-        if not current_state:
-            return {}
-        return current_state
+        return current_state or {}
 
     @staticmethod
     def _get_state_value(
         state: Optional[Mapping[str, Any]], key: str, default: Optional[Any] = None
     ) -> Any:
-        if state is not None:
-            return state.get(key, default)
-        return default
+        return state.get(key, default) if state is not None else default
 
     def _is_scheduled(self, last_run: Optional[int], current_time: int) -> bool:
         if last_run is None:

@@ -23,7 +23,10 @@ class Malpedia:
 
     def __init__(self):
         # Instantiate the connector helper from config
-        config_file_path = os.path.dirname(os.path.abspath(__file__)) + "/../config.yml"
+        config_file_path = (
+            f"{os.path.dirname(os.path.abspath(__file__))}/../config.yml"
+        )
+
         config = (
             yaml.load(open(config_file_path), Loader=yaml.FullLoader)
             if os.path.isfile(config_file_path)
@@ -93,17 +96,13 @@ class Malpedia:
 
     def _load_state(self) -> Dict[str, Any]:
         current_state = self.helper.get_state()
-        if not current_state:
-            return {}
-        return current_state
+        return current_state or {}
 
     @staticmethod
     def _get_state_value(
         state: Optional[Mapping[str, Any]], key: str, default: Optional[Any] = None
     ) -> Any:
-        if state is not None:
-            return state.get(key, default)
-        return default
+        return state.get(key, default) if state is not None else default
 
     def _is_scheduled(self, last_run: Optional[int], current_time: int) -> bool:
         if last_run is None:
@@ -112,9 +111,7 @@ class Malpedia:
         return time_diff >= int(self.INTERVAL_SEC)
 
     def _check_version(self, last_version: Optional[int], current_version: int) -> bool:
-        if last_version is None:
-            return True
-        return current_version > last_version
+        return True if last_version is None else current_version > last_version
 
     @staticmethod
     def _current_unix_timestamp() -> int:

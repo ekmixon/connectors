@@ -67,12 +67,14 @@ class MasterYaraImporter(BaseImporter):
             )
 
         master_yara_fetch_weekday = self.master_yara_fetch_weekday
-        if master_yara_fetch_weekday is not None:
-            if not is_current_weekday_before_datetime(
+        if (
+            master_yara_fetch_weekday is not None
+            and not is_current_weekday_before_datetime(
                 master_yara_fetch_weekday, latest_master_yara_datetime
-            ):
-                self._info("It is not time to fetch the Master YARA yet.")
-                return self._create_state(latest_master_yara_datetime)
+            )
+        ):
+            self._info("It is not time to fetch the Master YARA yet.")
+            return self._create_state(latest_master_yara_datetime)
 
         yara = self._fetch_master_yara()
 
@@ -139,9 +141,7 @@ class MasterYaraImporter(BaseImporter):
         yara_rules: List[YaraRule],
     ) -> List[Tuple[str, List[YaraRule]]]:
         def _key_func(item: YaraRule) -> str:
-            if item.report is not None:
-                return item.report.strip()
-            return ""
+            return item.report.strip() if item.report is not None else ""
 
         groups = []
         sorted_yara_rules = sorted(yara_rules, key=_key_func)

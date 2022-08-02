@@ -60,7 +60,7 @@ class KasperskyClient:
         self, base_url: str, user: str, password: str, certificate_path: str
     ) -> None:
         """Initialize Kaspersky client."""
-        self.base_url = base_url if not base_url.endswith("/") else base_url[:-1]
+        self.base_url = base_url[:-1] if base_url.endswith("/") else base_url
 
         self.session = requests.Session()
         self.session.auth = (user, password)
@@ -144,10 +144,9 @@ class KasperskyClient:
             and json_response[self._RESPONSE_FIELD_STATUS] == self._STATUS_OK
         ):
             return json_response
-        else:
-            response_text = response.text
-            msg = f"Unknown API response from '{endpoint}' endpoint: {response_text}"
-            self._raise_client_exception(msg)
+        response_text = response.text
+        msg = f"Unknown API response from '{endpoint}' endpoint: {response_text}"
+        self._raise_client_exception(msg)
 
     def _get_url(self, endpoint: str) -> str:
         return f"{self.base_url}{endpoint}"
@@ -163,9 +162,8 @@ class KasperskyClient:
 
         if self._RESPONSE_FIELD_RETURN_DATA in json_response:
             return json_response[self._RESPONSE_FIELD_RETURN_DATA]
-        else:
-            msg = f"Unexpected response from '{endpoint}' endpoint: {json_response}"
-            self._raise_client_exception(msg)
+        msg = f"Unexpected response from '{endpoint}' endpoint: {json_response}"
+        self._raise_client_exception(msg)
 
     def get_publications(
         self, date_start: Optional[datetime] = None, date_end: Optional[datetime] = None

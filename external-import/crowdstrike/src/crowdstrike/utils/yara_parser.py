@@ -126,7 +126,7 @@ class YaraParser:
 
         malware_families = cls._get_malware_families(yara_rule)
 
-        rule = YaraRule(
+        return YaraRule(
             name=name,
             description=description,
             last_modified=last_modified,
@@ -135,7 +135,6 @@ class YaraParser:
             malware_families=malware_families,
             rule=yara_rule,
         )
-        return rule
 
     @classmethod
     def _get_name(cls, yara_rule: str) -> Optional[str]:
@@ -166,14 +165,8 @@ class YaraParser:
 
     @staticmethod
     def _match_regex(regex: re.Pattern, string) -> Optional[str]:
-        match = regex.search(string)
-        if match:
-            return match.group(1)
-        else:
-            return None
+        return match.group(1) if (match := regex.search(string)) else None
 
     @staticmethod
     def _comma_string_to_list(string: Optional[str]) -> List[str]:
-        if string is None:
-            return []
-        return convert_comma_separated_str_to_list(string)
+        return [] if string is None else convert_comma_separated_str_to_list(string)

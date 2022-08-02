@@ -66,9 +66,10 @@ class cuckooTarget:
         return self.json["urls"]  # Fix me later
 
     def getYara(self):
-        yara_matches = []
-        for match in self.json["yara"]:
-            yara_matches.append({"name": match["name"], "meta": match["meta"]})
+        yara_matches = [
+            {"name": match["name"], "meta": match["meta"]}
+            for match in self.json["yara"]
+        ]
 
     def __str__(self):
         return self.name
@@ -87,12 +88,10 @@ class cuckooReportTarget:
             self.archive = cuckooTarget(report_json, "archive")
 
     def __str__(self) -> str:
-        if self.category == "url":
+        if self.category in ["file", "archive"]:
+            return self.file.name
+        elif self.category == "url":
             return self.url
-        elif self.category == "file":
-            return self.file.name
-        elif self.category == "archive":
-            return self.file.name
 
 
 class cuckooReportSignature:
@@ -110,17 +109,14 @@ class cuckooReportSignature:
         self.ttp = self.getTTPs()
 
     def getTTPs(self):
-        ttps = []
-
-        for TTP in self.json["ttp"].keys():
-            ttps.append(
-                {
-                    "TTP": TTP,
-                    "name": self.json["ttp"][TTP]["short"],
-                    "description": self.json["ttp"][TTP]["long"],
-                }
-            )
-        return ttps
+        return [
+            {
+                "TTP": TTP,
+                "name": self.json["ttp"][TTP]["short"],
+                "description": self.json["ttp"][TTP]["long"],
+            }
+            for TTP in self.json["ttp"].keys()
+        ]
 
     def __str__(self):
         return self.name
@@ -139,9 +135,10 @@ class cuckooReportExtracted:
         self.first_seen = datetime.fromtimestamp(self.json["first_seen"])
 
     def getYara(self):
-        yara_matches = []
-        for match in self.json["yara"]:
-            yara_matches.append({"name": match["name"], "meta": match["meta"]})
+        yara_matches = [
+            {"name": match["name"], "meta": match["meta"]}
+            for match in self.json["yara"]
+        ]
 
     def __str__(self):
         return f"[{str(self.pid)}][{self.category}] {self.raw.split('/')[-1]}"
@@ -168,9 +165,10 @@ class cuckooReportDropped:
         self.urls = self.json["urls"]
 
     def getYara(self):
-        yara_matches = []
-        for match in self.json["yara"]:
-            yara_matches.append({"name": match["name"], "meta": match["meta"]})
+        yara_matches = [
+            {"name": match["name"], "meta": match["meta"]}
+            for match in self.json["yara"]
+        ]
 
     def __str__(self):
         return self.name
@@ -195,9 +193,10 @@ class cuckooReportBuffer:
         self.urls = self.json["urls"]
 
     def getYara(self):
-        yara_matches = []
-        for match in self.json["yara"]:
-            yara_matches.append({"name": match["name"], "meta": match["meta"]})
+        yara_matches = [
+            {"name": match["name"], "meta": match["meta"]}
+            for match in self.json["yara"]
+        ]
 
     def __str__(self):
         return self.name
@@ -234,55 +233,16 @@ class cuckooReportHTTPRequest:
     def __init__(self, json):
         self.json = json
 
-        if "body" in self.json:
-            self.body = self.json["body"]
-        else:
-            self.body = None
-
-        if "count" in self.json:
-            self.count = self.json["count"]
-        else:
-            self.count = None
-
-        if "data" in self.json:
-            self.data = self.json["data"]
-        else:
-            self.data = None
-
-        if "host" in self.json:
-            self.host = self.json["host"]
-        else:
-            self.host = None
-
-        if "method" in self.json:
-            self.method = self.json["method"]
-        else:
-            self.method = None
-
-        if "path" in self.json:
-            self.path = self.json["path"]
-        else:
-            self.path = None
-
-        if "port" in self.json:
-            self.port = self.json["port"]
-        else:
-            self.port = None
-
-        if "uri" in self.json:
-            self.data = self.json["uri"]
-        else:
-            self.data = None
-
-        if "user-agent" in self.json:
-            self.useragent = self.json["user-agent"]
-        else:
-            self.useragent = None
-
-        if "version" in self.json:
-            self.version = self.json["version"]
-        else:
-            self.version = None
+        self.body = self.json["body"] if "body" in self.json else None
+        self.count = self.json["count"] if "count" in self.json else None
+        self.data = self.json["data"] if "data" in self.json else None
+        self.host = self.json["host"] if "host" in self.json else None
+        self.method = self.json["method"] if "method" in self.json else None
+        self.path = self.json["path"] if "path" in self.json else None
+        self.port = self.json["port"] if "port" in self.json else None
+        self.data = self.json["uri"] if "uri" in self.json else None
+        self.useragent = self.json["user-agent"] if "user-agent" in self.json else None
+        self.version = self.json["version"] if "version" in self.json else None
 
     def __str__(self):
         return f"[{self.method}] {self.host}"
@@ -389,7 +349,7 @@ class cuckooReportNetwork:
 
     def getHTTPEX(self):
         requests = []
-        if not "http_ex" in self.json:
+        if "http_ex" not in self.json:
             return []
 
         for reqObj in self.json["http_ex"]:
@@ -428,11 +388,7 @@ class cuckooReportBehaviorSummary:
         else:
             self.directory_enumerated = []
 
-        if "dll_loaded" in self.json:
-            self.dll_loaded = self.json["dll_loaded"]
-        else:
-            self.dll_loaded = []
-
+        self.dll_loaded = self.json["dll_loaded"] if "dll_loaded" in self.json else []
         if "file_copied" in self.json:
             self.file_copied = self.json["file_copied"]
         else:
@@ -458,21 +414,13 @@ class cuckooReportBehaviorSummary:
         else:
             self.file_failed = []
 
-        if "file_moved" in self.json:
-            self.file_moved = self.json["file_moved"]
-        else:
-            self.file_moved = []
-
+        self.file_moved = self.json["file_moved"] if "file_moved" in self.json else []
         if "file_opened" in self.json:
             self.file_opened = self.json["file_opened"]
         else:
             self.file_opened = []
 
-        if "file_read" in self.json:
-            self.file_read = self.json["file_read"]
-        else:
-            self.file_read = []
-
+        self.file_read = self.json["file_read"] if "file_read" in self.json else []
         if "file_recreated" in self.json:
             self.file_recreated = self.json["file_recreated"]
         else:
@@ -483,16 +431,8 @@ class cuckooReportBehaviorSummary:
         else:
             self.file_written = []
 
-        if "guid" in self.json:
-            self.guid = self.json["guid"]
-        else:
-            self.guid = []
-
-        if "mutex" in self.json:
-            self.mutex = self.json["mutex"]
-        else:
-            self.mutex = []
-
+        self.guid = self.json["guid"] if "guid" in self.json else []
+        self.mutex = self.json["mutex"] if "mutex" in self.json else []
         if "regkey_opened" in self.json:
             self.regkey_opened = self.json["regkey_opened"]
         else:
@@ -544,41 +484,22 @@ class cuckooReportProcess:
         else:
             self.command_line = []
 
-        if "first_seen" in self.json:
-            self.first_seen = self.json["first_seen"]
-        else:
-            self.first_seen = 0
-
-        if "pid" in self.json:
-            self.pid = self.json["pid"]
-        else:
-            self.pid = -1
-
-        if "ppid" in self.json:
-            self.ppid = self.json["ppid"]
-        else:
-            self.ppid = -1
-
+        self.first_seen = self.json["first_seen"] if "first_seen" in self.json else 0
+        self.pid = self.json["pid"] if "pid" in self.json else -1
+        self.ppid = self.json["ppid"] if "ppid" in self.json else -1
         if "process_name" in self.json:
             self.process_name = self.json["process_name"]
         else:
             self.process_name = ""
 
-        if "track" in self.json:
-            self.track = self.json["track"]
-        else:
-            self.track = False
+        self.track = self.json["track"] if "track" in self.json else False
 
 
 class cuckooReport:
     def __init__(self, report_json):
         self.report_json = report_json
 
-        if "info" in report_json:
-            self.info: cuckooReportInfo = cuckooReportInfo(report_json)
-        else:
-            self.info = None
-
+        self.info = cuckooReportInfo(report_json) if "info" in report_json else None
         if "target" in report_json:
             self.target: cuckooReportTarget = cuckooReportTarget(report_json)
         else:
@@ -606,11 +527,7 @@ class cuckooReport:
             self.behavior = None
             self.process = []
 
-        if "strings" in report_json:
-            self.strings = report_json["strings"]
-        else:
-            self.strings = []
-
+        self.strings = report_json["strings"] if "strings" in report_json else []
         self.signatures = self.getReportSignatures()
         self.extracted = self.getReportExtracted()
         self.dropped = self.getReportDropped()
@@ -630,7 +547,7 @@ class cuckooReport:
 
     def getReportSignatures(self):
         signatures = []
-        if not "signatures" in self.report_json:
+        if "signatures" not in self.report_json:
             return []
         for sig in self.report_json["signatures"]:
             sigObj: cuckooReportSignature = cuckooReportSignature(sig)
@@ -640,7 +557,7 @@ class cuckooReport:
 
     def getReportExtracted(self):
         ExtractedObjects = []
-        if not "extracted" in self.report_json:
+        if "extracted" not in self.report_json:
             return []
         for objx in self.report_json["extracted"]:
             extObj: cuckooReportExtracted = cuckooReportExtracted(objx)
@@ -650,7 +567,7 @@ class cuckooReport:
 
     def getReportDropped(self):
         DroppedObjects = []
-        if not "dropped" in self.report_json:
+        if "dropped" not in self.report_json:
             return []
         for objx in self.report_json["dropped"]:
             dropObj: cuckooReportDropped = cuckooReportDropped(objx)
@@ -660,7 +577,7 @@ class cuckooReport:
 
     def getReportBuffer(self):
         BufferObjects = []
-        if not "buffer" in self.report_json:
+        if "buffer" not in self.report_json:
             return []
         for objx in self.report_json["buffer"]:
             bufObj: cuckooReportBuffer = cuckooReportBuffer(objx)
@@ -680,7 +597,7 @@ class cuckooReport:
         grand = []
 
         for Child in children:
-            if not len(Child["children"]) > 0:
+            if len(Child["children"]) <= 0:
                 grand.append(cuckooReportProcess(Child))
             else:
                 grand.append(cuckooReportProcess(Child))
@@ -718,11 +635,7 @@ class cuckoo:
 
     def _make_request(self, method, EP, data=None, params=None, host=None):
         try:
-            if self.URL[-1] == "/":
-                URL = f"{self.URL}{EP}"
-            else:
-                URL = f"{self.URL}/{EP}"
-
+            URL = f"{self.URL}{EP}" if self.URL[-1] == "/" else f"{self.URL}/{EP}"
             if params and data:
                 resp = requests.request(
                     method, URL, data=data, params=params, verify=self.verify
@@ -739,10 +652,8 @@ class cuckoo:
                     f"Received response code {resp.status_code} from {URL}"
                 )
                 retry = 0
-                while not resp.ok:
-                    if retry >= 5:
-                        break
-                    retry = retry + 1
+                while not resp.ok and retry < 5:
+                    retry += 1
                     if params and data:
                         resp = requests.request(
                             method, URL, data=data, params=params, verify=self.verify

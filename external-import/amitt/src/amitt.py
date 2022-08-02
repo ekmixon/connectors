@@ -10,7 +10,7 @@ from pycti import OpenCTIConnectorHelper, get_config_variable
 class Amitt:
     def __init__(self):
         # Instantiate the connector helper from config
-        config_file_path = os.path.dirname(os.path.abspath(__file__)) + "/config.yml"
+        config_file_path = f"{os.path.dirname(os.path.abspath(__file__))}/config.yml"
         config = (
             yaml.load(open(config_file_path), Loader=yaml.FullLoader)
             if os.path.isfile(config_file_path)
@@ -105,9 +105,7 @@ class Amitt:
                         + str(timestamp)
                     )
                     # Store the current timestamp as a last run
-                    message = "Connector successfully run, storing last_run as " + str(
-                        timestamp
-                    )
+                    message = f"Connector successfully run, storing last_run as {timestamp}"
                     self.helper.log_info(message)
                     self.helper.set_state({"last_run": timestamp})
                     self.helper.api.work.to_processed(work_id, message)
@@ -116,7 +114,6 @@ class Amitt:
                         + str(round(self.get_interval() / 60 / 60 / 24, 2))
                         + " days"
                     )
-                    time.sleep(60)
                 else:
                     new_interval = self.get_interval() - (timestamp - last_run)
                     self.helper.log_info(
@@ -124,7 +121,7 @@ class Amitt:
                         + str(round(new_interval / 60 / 60 / 24, 2))
                         + " days"
                     )
-                    time.sleep(60)
+                time.sleep(60)
             except (KeyboardInterrupt, SystemExit):
                 self.helper.log_info("Connector stop")
                 exit(0)

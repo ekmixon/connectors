@@ -69,11 +69,10 @@ class YaraRuleUpdater:
             rule_updated = self.try_updating(yara_rule)
             if rule_updated is None:
                 new_yara_rules.append(yara_rule)
+            elif rule_updated:
+                updated += 1
             else:
-                if rule_updated:
-                    updated += 1
-                else:
-                    not_updated += 1
+                not_updated += 1
 
         existing = updated + not_updated
 
@@ -156,10 +155,7 @@ class YaraRuleUpdater:
         if new_rule.last_modified is None or current_rule.last_modified is None:
             return False
 
-        if new_rule.last_modified > current_rule.last_modified:
-            return True
-
-        return False
+        return new_rule.last_modified > current_rule.last_modified
 
     def _update_indicator_pattern(
         self, indicator_id: str, new_indicator_pattern: str
@@ -169,10 +165,7 @@ class YaraRuleUpdater:
             input={"key": self._KEY_INDICATOR_PATTERN, "value": new_indicator_pattern},
         )
 
-        if updated is None:
-            return False
-
-        return updated.get(self._KEY_ID) == indicator_id
+        return False if updated is None else updated.get(self._KEY_ID) == indicator_id
 
     def _info(self, msg: str, *args: Any) -> None:
         fmt_msg = msg.format(*args)
@@ -216,10 +209,7 @@ def convert_yara_rules_to_yara_model(
 
 
 def _split_yara_rules(yara_rules_str: str, imports_at_top: bool = False) -> List[str]:
-    imports = None
-    if imports_at_top:
-        imports = _get_imports(yara_rules_str)
-
+    imports = _get_imports(yara_rules_str) if imports_at_top else None
     rule_buffer = None
 
     result = []
@@ -313,11 +303,7 @@ def _get_last_modified(yara_rule: str) -> Optional[str]:
 
 
 def _match_regex(regex: re.Pattern, string) -> Optional[str]:
-    match = regex.search(string)
-    if match:
-        return match.group(1)
-    else:
-        return None
+    return match.group(1) if (match := regex.search(string)) else None
 
 
 def create_yara_indicator(
@@ -354,7 +340,7 @@ def create_yara_indicator(
         rule,
         _PATTERN_TYPE_YARA,
         created_by=created_by,
-        created=created,
+        valid_from=valid_from,
         modified=modified,
         name=name,
         description=description,

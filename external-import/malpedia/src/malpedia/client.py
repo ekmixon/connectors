@@ -18,7 +18,7 @@ class MalpediaClient:
         self.api_url = self._DEFAULT_API_URL
         self.api_key = api_key
 
-        if self.api_key == "" or self.api_key is None:
+        if not self.api_key or self.api_key is None:
             self.unauthenticated = True
         else:
             self.unauthenticated = False
@@ -30,12 +30,9 @@ class MalpediaClient:
         try:
             if self.unauthenticated:
                 r = requests.get(url)
-                data = r.json()
             else:
-                r = requests.get(
-                    url, headers={"Authorization": "apitoken " + self.api_key}
-                )
-                data = r.json()
+                r = requests.get(url, headers={"Authorization": f"apitoken {self.api_key}"})
+            data = r.json()
         except requests.exceptions.RequestException as e:
             logger.error(f"error in malpedia query: {e}")
             return None
@@ -48,6 +45,4 @@ class MalpediaClient:
 
     def current_version(self) -> int:
         response_json = self.query("get/version")
-        if response_json is None:
-            return 0
-        return int(response_json["version"])
+        return 0 if response_json is None else int(response_json["version"])

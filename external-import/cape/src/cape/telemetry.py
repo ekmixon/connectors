@@ -151,21 +151,15 @@ class openCTIInterface:
                 IPind = Indicator(
                     name=host.ip, pattern=STIXPattern, pattern_type="stix"
                 )
-                DNSObs.append(DNSind)
-                DNSObs.append(IPind)
-            DNSObs.append(IP)
-            DNSObs.append(DNS)
+                DNSObs.extend((DNSind, IPind))
+            DNSObs.extend((IP, DNS))
             DNSRel.append(Rel)
 
         return [DNSObs, DNSRel]
 
     # Stix-erize Registry Keys
     def createRegKeysObs(self, reg_keys):
-        regObs = []
-        for key in reg_keys:
-            regObs.append(WindowsRegistryKey(key=key))
-
-        return regObs
+        return [WindowsRegistryKey(key=key) for key in reg_keys]
 
     # Sacrifised a Chicken Nugget to the Abstract Programing entity and they provided
     def createProcessObs(self, procs):
@@ -208,13 +202,12 @@ class openCTIInterface:
             Child: cuckooReportProcess
             childs = [[], []]
 
-            if not len(Child.children) > 0:  # No Granchildren this is easy ;)
+            if len(Child.children) <= 0:  # No Granchildren this is easy ;)
                 ChildProc = Process(
                     pid=Child.pid,
                     command_line=Child.environ.command_line,
                     child_refs=[],
                 )
-                grand.append(ChildProc)
             else:
                 ext = self.extractChildren(Child.children)
 
@@ -231,12 +224,12 @@ class openCTIInterface:
                     child_refs=IDs,
                 )
 
-                grand.append(ChildProc)  # Add Main Child Process to Bundle
                 someObsecurechildren.extend(childs[1])  # Add Direct Children to Bundle
                 someObsecurechildren.extend(
                     childs[0]
                 )  # Add Children of Children (Main Process list) to bundle
 
+            grand.append(ChildProc)
         return [grand, someObsecurechildren]
 
     def createNetTrafficBlock(self, traffic: cuckooReportTCPUDP, protocol):
@@ -261,14 +254,17 @@ class openCTIInterface:
 
     def createNetTrafficObs(self, traffic: cuckooReportNetwork):
         TCPCons, UDPCons, ICMPCons = [], [], []
-        for packet in traffic.tcp:
-            TCPCons.append(self.createNetTrafficBlock(packet, "tcp"))
+        TCPCons.extend(
+            self.createNetTrafficBlock(packet, "tcp") for packet in traffic.tcp
+        )
 
-        for packet in traffic.udp:
-            UDPCons.append(self.createNetTrafficBlock(packet, "udp"))
+        UDPCons.extend(
+            self.createNetTrafficBlock(packet, "udp") for packet in traffic.udp
+        )
 
-        for packet in traffic.icmp:
-            ICMPCons.append(self.createNetICMPlock(packet, "icmp"))
+        ICMPCons.extend(
+            self.createNetICMPlock(packet, "icmp") for packet in traffic.icmp
+        )
 
         return {"TCP": TCPCons, "UDP": UDPCons, "ICMP": ICMPCons}
 
@@ -338,35 +334,28 @@ class openCTIInterface:
     ):
         if report.target.category == "url":
             name = f"CAPE Sandbox Report {str(report.info.id)} - {report.target.url}"
+            desc = f"CAPE Sandbox Report {str(report.info.id)} - {report.target.url}"
         else:
             name = (
                 f"CAPE Sandbox Report {str(report.info.id)} - {report.target.file.name}"
             )
 
-        if report.target.category == "url":
-            desc = f"CAPE Sandbox Report {str(report.info.id)} - {report.target.url}"
-        else:
             desc = f"CAPE Sandbox Report {str(report.info.id)} - {report.target.file.name}\nAnalyzied File:\n  SHA256: {report.target.file.sha256}\n  SHA1:{report.target.file.sha1}\n  MD5:{report.target.file.md5}"
 
         conf = int(report.malscore * 100)
         reportLabels = ["sandbox", f"Score: {str(report.malscore)}"]
 
-        if conf > 100:
-            conf = 100
-
+        conf = min(conf, 100)
         if conf > 70:
             reportLabels.append("Malicious")
 
         if report.detections:
             reportLabels.append(report.detections)
 
-        labelIDs = []
-        for labelx in reportLabels:
-            labelIDs.append(self.get_or_create_label(labelx))
-
-        tlps = []
-
+        labelIDs = [self.get_or_create_label(labelx) for labelx in reportLabels]
         if report.info.tlp:
+            tlps = []
+
             if "GREEN" in report.info.tlp:
                 tlps.append(TLP_GREEN["id"])
             elif "WHITE" in report.info.tlp:
@@ -406,8 +395,7 @@ class openCTIInterface:
         ATPs = []
         for TTP in TTPs:
             TTP: cuckooReportTTP
-            TTPX = self.Get_TTP(TTP)
-            if TTPX:
+            if TTPX := self.Get_TTP(TTP):
                 ATPs.append(TTPX)
 
         return ATPs
@@ -447,31 +435,16 @@ class openCTIInterface:
             else:
                 IDs.append(Malware)
 
-        for ip in ips:
-            IDs.append(ip)
-
-        for fqdn in fqdns:
-            IDs.append(fqdn)
-
-        for process in processes:
-            IDs.append(process)
-
-        for db in dropped_binaries:
-            IDs.append(db)
-
-        for ATP in AttackPatterns:
-            if ATP:
-                IDs.append(ATP["standard_id"])
-
+        IDs.extend(iter(ips))
+        IDs.extend(iter(fqdns))
+        IDs.extend(iter(processes))
+        IDs.extend(iter(dropped_binaries))
+        IDs.extend(ATP["standard_id"] for ATP in AttackPatterns if ATP)
         if reg_keys:
-            for key in reg_keys:
-                IDs.append(key)
-
+            IDs.extend(iter(reg_keys))
         if network_traffic:
             for type in ["TCP", "UDP", "ICMP"]:
-                for nt in network_traffic[type]:
-                    IDs.append(nt)
-
+                IDs.extend(iter(network_traffic[type]))
         return IDs
 
     def processAndSubmit(self):

@@ -136,8 +136,7 @@ class IndicatorImporter(BaseImporter):
                 limit=_limit, sort=_sort, fql_filter=_fql_filter, deep_pagination=True
             )
 
-            errors = response.errors
-            if errors:
+            if errors := response.errors:
                 self._error("Indicator query completed with errors")
                 for error in errors:
                     self._error("Error: {0} (code: {1})", error.message, error.code)

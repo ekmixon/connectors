@@ -165,12 +165,15 @@ class PulseBundleBuilder:
 
     @staticmethod
     def _determine_pulse_author(pulse: Pulse, provider: Identity) -> Identity:
-        pulse_author = pulse.author_name
-        if not pulse_author:
+        if pulse_author := pulse.author_name:
+            return (
+                provider
+                if pulse_author == provider.name
+                else create_organization(pulse_author, created_by=provider)
+            )
+
+        else:
             return provider
-        if pulse_author == provider.name:
-            return provider
-        return create_organization(pulse_author, created_by=provider)
 
     @staticmethod
     def _determine_pulse_tlp(
@@ -537,10 +540,9 @@ class PulseBundleBuilder:
             return []
         new_targets = targets
         if self._no_indicates():
-            new_targets = []
-            for target in targets:
-                if target["type"] != "attack-pattern":
-                    new_targets.append(target)
+            new_targets = [
+                target for target in targets if target["type"] != "attack-pattern"
+            ]
 
         return create_indicates_relationships(
             self.pulse_author,
@@ -605,12 +607,7 @@ class PulseBundleBuilder:
         return create_external_reference(self.source_name, url, external_id=external_id)
 
     def _get_labels(self) -> List[str]:
-        labels = []
-        for tag in self.pulse.tags:
-            if not tag:
-                continue
-            labels.append(tag)
-        return labels
+        return [tag for tag in self.pulse.tags if tag]
 
     def _create_reports(self, objects: List[_DomainObject]) -> List[Report]:
         return [self._create_report(objects)]

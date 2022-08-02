@@ -291,20 +291,12 @@ class PublicationBundleBuilder:
         labels = []
 
         tags = self.publication.tags
-        for tag in tags:
-            if not tag:
-                continue
-
-            labels.append(tag)
-
+        labels.extend(tag for tag in tags if tag)
         return labels
 
     def _create_files(self) -> Optional[List[Mapping[str, str]]]:
         report_file = self._create_file()
-        if report_file is None:
-            return None
-
-        return [report_file]
+        return None if report_file is None else [report_file]
 
     def _create_file(self) -> Optional[Mapping[str, str]]:
         report_pdf = self.publication.report_pdf

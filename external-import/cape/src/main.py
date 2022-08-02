@@ -88,41 +88,33 @@ class capeConnector:
                 self.helper.log_info(str(state))
 
                 # Get Last Cape Task Pulled
-                if not state:
-                    current_task = 0
+                if state and "task" in state:
+                    current_task = self.helper.get_state()["task"]
                 else:
-                    if "task" in state:
-                        current_task = self.helper.get_state()["task"]
-                    else:
-                        current_task = 0
+                    current_task = 0
 
-                # Check If starting Task > last task
-                if self.start_id > current_task:
-                    current_task = self.start_id
-                    self.helper.set_state({"task": self.start_id})
             else:
                 last_run = datetime.utcfromtimestamp(
                     self.helper.get_state()["last_run"]
                 ).strftime("%Y-%m-%d %H:%M:%S")
-                self.helper.log_info("Connector last run: " + last_run)
+                self.helper.log_info(f"Connector last run: {last_run}")
 
                 # Get Last Cape Task Pulled
                 state = self.helper.get_state()
                 self.helper.log_info(str(state))
                 if not state:
                     current_task = 0
-                    self.helper.log_info("Last Task ID (STATE): " + str(current_task))
+                    self.helper.log_info(f"Last Task ID (STATE): {current_task}")
                 if "task" in state:
                     current_task = state["task"]
-                    self.helper.log_info("Last Task ID (STATE): " + str(current_task))
+                    self.helper.log_info(f"Last Task ID (STATE): {str(current_task)}")
                 else:
                     current_task = 0
 
-                # Check If starting Task > last task
-                if self.start_id > current_task:
-                    current_task = self.start_id
-                    self.helper.set_state({"task": self.start_id})
-
+            # Check If starting Task > last task
+            if self.start_id > current_task:
+                current_task = self.start_id
+                self.helper.set_state({"task": self.start_id})
             try:
                 CapeTasks = (
                     self.cape_api.getCuckooTasks()
@@ -133,7 +125,7 @@ class capeConnector:
                 raise (err)
 
             for task in reversed(CapeTasks):
-                if not task["status"] == "reported":
+                if task["status"] != "reported":
                     continue  # If task Has not reported Skip
                 if not task["completed_on"]:
                     continue  # If task Has not completed Skip

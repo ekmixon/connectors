@@ -17,7 +17,7 @@ from cvetostix2 import convert
 class Cve:
     def __init__(self):
         # Instantiate the connector helper from config
-        config_file_path = os.path.dirname(os.path.abspath(__file__)) + "/config.yml"
+        config_file_path = f"{os.path.dirname(os.path.abspath(__file__))}/config.yml"
         config = (
             yaml.load(open(config_file_path), Loader=yaml.FullLoader)
             if os.path.isfile(config_file_path)
@@ -57,14 +57,12 @@ class Cve:
     def convert_and_send(self, url, work_id):
         try:
             # Downloading json.gz file
-            self.helper.log_info("Requesting the file " + url)
+            self.helper.log_info(f"Requesting the file {url}")
             response = urllib.request.urlopen(
                 url, context=ssl.create_default_context(cafile=certifi.where())
             )
             image = response.read()
-            with open(
-                os.path.dirname(os.path.abspath(__file__)) + "/data.json.gz", "wb"
-            ) as file:
+            with open(f"{os.path.dirname(os.path.abspath(__file__))}/data.json.gz", "wb") as file:
                 file.write(image)
             # Unzipping the file
             self.helper.log_info("Unzipping the file")
@@ -142,7 +140,6 @@ class Cve:
                     )
                     self.helper.api.work.to_processed(work_id, message)
                     self.helper.log_info(message)
-                    time.sleep(60)
                 else:
                     new_interval = self.get_interval() - (timestamp - last_run)
                     self.helper.log_info(
@@ -150,7 +147,7 @@ class Cve:
                         + str(round(new_interval / 60 / 60 / 24, 2))
                         + " days"
                     )
-                    time.sleep(60)
+                time.sleep(60)
             except (KeyboardInterrupt, SystemExit):
                 self.helper.log_info("Connector stop")
                 exit(0)

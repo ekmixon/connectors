@@ -45,12 +45,12 @@ def is_current_weekday_before_datetime(
 ) -> bool:
     """Check if weekday matched current weekday."""
     current_datetime = datetime_utc_now()
-    if current_datetime.isoweekday() == weekday and (
-        before_datetime is None or before_datetime.date() < current_datetime.date()
-    ):
-        return True
-    else:
-        return False
+    return current_datetime.isoweekday() == weekday and (
+        (
+            before_datetime is None
+            or before_datetime.date() < current_datetime.date()
+        )
+    )
 
 
 def decode_base64_gzip_to_bytes(base64_gzip_data: str) -> bytes:
@@ -91,7 +91,7 @@ def is_ip_address(address: str) -> bool:
     try:
         ip_address = ipaddress.ip_address(address)
         ip_version = ip_address.version
-        return ip_version == 4 or ip_version == 6
+        return ip_version in [4, 6]
     except ValueError:
         return False
 

@@ -124,31 +124,23 @@ class openCTIInterface:
                 IPind = Indicator(
                     name=host["ip"], pattern=STIXPattern, pattern_type="stix"
                 )
-                DNSObs.append(DNSind)
-                DNSObs.append(IPind)
-            DNSObs.append(IP)
-            DNSObs.append(DNS)
+                DNSObs.extend((DNSind, IPind))
+            DNSObs.extend((IP, DNS))
             DNSRel.append(Rel)
 
         return [DNSObs, DNSRel]
 
     def createRegKeysObs(self, reg_keys):
-        regObs = []
-        for key in reg_keys:
-            regObs.append(WindowsRegistryKey(key=key))
-
-        return regObs
+        return [WindowsRegistryKey(key=key) for key in reg_keys]
 
     def createProcessObs(self, procs):
-        pObs = []
-        for proc in procs:
-            pObs.append(
-                Process(
-                    pid=proc.pid,
-                    command_line=proc.command_line,
-                )
+        return [
+            Process(
+                pid=proc.pid,
+                command_line=proc.command_line,
             )
-        return pObs
+            for proc in procs
+        ]
 
     def createNetTrafficBlock(self, traffic: cuckooReportTCPUDP, protocol):
         srcIP = IPv4Address(value=traffic.src)
@@ -172,14 +164,17 @@ class openCTIInterface:
 
     def createNetTrafficObs(self, traffic: cuckooReportNetwork):
         TCPCons, UDPCons, ICMPCons = [], [], []
-        for packet in traffic.tcp:
-            TCPCons.append(self.createNetTrafficBlock(packet, "tcp"))
+        TCPCons.extend(
+            self.createNetTrafficBlock(packet, "tcp") for packet in traffic.tcp
+        )
 
-        for packet in traffic.udp:
-            UDPCons.append(self.createNetTrafficBlock(packet, "udp"))
+        UDPCons.extend(
+            self.createNetTrafficBlock(packet, "udp") for packet in traffic.udp
+        )
 
-        for packet in traffic.icmp:
-            ICMPCons.append(self.createNetICMPlock(packet, "icmp"))
+        ICMPCons.extend(
+            self.createNetICMPlock(packet, "icmp") for packet in traffic.icmp
+        )
 
         return {"TCP": TCPCons, "UDP": UDPCons, "ICMP": ICMPCons}
 
@@ -222,10 +217,7 @@ class openCTIInterface:
         iocs = []
 
         for payload in objects:
-            for value in exec:
-                if value.lower() in payload.type:
-                    exec_files.append(payload)
-
+            exec_files.extend(payload for value in exec if value.lower() in payload.type)
         for file in exec_files:
             hashes = {
                 "MD5": file.md5.upper(),
@@ -251,19 +243,15 @@ class openCTIInterface:
     ):
         if report.target.category == "url":
             name = f"Cuckoo Sandbox Report {str(report.info.id)} - {report.target.url}"
+            desc = f"Cuckoo Sandbox Report {str(report.info.id)} - {report.target.url}"
         else:
             name = f"Cuckoo Sandbox Report {str(report.info.id)} - {report.target.file.name}"
 
-        if report.target.category == "url":
-            desc = f"Cuckoo Sandbox Report {str(report.info.id)} - {report.target.url}"
-        else:
             desc = f"Cuckoo Sandbox Report {str(report.info.id)} - {report.target.file.name}\nAnalyzied File:\n  SHA256: {report.target.file.sha256}\n  SHA1:{report.target.file.sha1}\n  MD5:{report.target.file.md5}"
 
         conf = int(report.info.score * 100)
 
-        if conf > 100:
-            conf = 100
-
+        conf = min(conf, 100)
         report = Report(
             name=name,
             report_types="sandbox-report",
@@ -277,11 +265,8 @@ class openCTIInterface:
         return report
 
     def create_attack_pattern(self, attack_pattern: cuckooReportSignature):
-        mID = None
         ATP = None
-        if len(attack_pattern.ttp) > 1:
-            mID = attack_pattern.ttp[0]["TTP"]
-
+        mID = attack_pattern.ttp[0]["TTP"] if len(attack_pattern.ttp) > 1 else None
         if mID:
             ATP = self.API.attack_pattern.read(
                 filters={
@@ -301,18 +286,14 @@ class openCTIInterface:
 
         ATP = AttackPattern(
             name=attack_pattern.name,
-            description="[Cuckoo Sandbox] " + attack_pattern.description,
+            description=f"[Cuckoo Sandbox] {attack_pattern.description}",
         )
+
 
         return ATP
 
     def getAttackPatterns(self, signatures):
-        ATPs = []
-
-        for sig in signatures:
-            ATPs.append(self.create_attack_pattern(sig))
-
-        return ATPs
+        return [self.create_attack_pattern(sig) for sig in signatures]
 
     def get_related(
         self,
@@ -324,32 +305,17 @@ class openCTIInterface:
         AttackPatterns,
         reg_keys,
     ):
-        IDs = []
+        IDs = list(ips)
 
-        for ip in ips:
-            IDs.append(ip)
-
-        for fqdn in fqdns:
-            IDs.append(fqdn)
-
-        for process in processes:
-            IDs.append(process)
-
-        for db in dropped_binaries:
-            IDs.append(db)
-
-        for ATP in AttackPatterns:
-            IDs.append(ATP)
-
+        IDs.extend(iter(fqdns))
+        IDs.extend(iter(processes))
+        IDs.extend(iter(dropped_binaries))
+        IDs.extend(iter(AttackPatterns))
         if reg_keys:
-            for key in reg_keys:
-                IDs.append(key)
-
+            IDs.extend(iter(reg_keys))
         if network_traffic:
             for type in ["TCP", "UDP", "ICMP"]:
-                for nt in network_traffic[type]:
-                    IDs.append(nt)
-
+                IDs.extend(iter(network_traffic[type]))
         return IDs
 
     def processAndSubmit(self):
@@ -376,26 +342,19 @@ class openCTIInterface:
             processes = []
 
         if self.EnableRegKeys:
-            if self.report.behavior:
-                if self.report.behavior.regkey_written:
-                    registry_keys = self.createRegKeysObs(
-                        self.report.behavior.regkey_written
-                    )
-                else:
-                    registry_keys = None
+            if self.report.behavior and self.report.behavior.regkey_written:
+                registry_keys = self.createRegKeysObs(
+                    self.report.behavior.regkey_written
+                )
             else:
                 registry_keys = None
         else:
             registry_keys = None
 
-        if self.EnableNetTraffic:
-            if self.report.network:
-                network_traffic = self.createNetTrafficObs(self.report.network)
-            else:
-                network_traffic = None
+        if self.EnableNetTraffic and self.report.network:
+            network_traffic = self.createNetTrafficObs(self.report.network)
         else:
             network_traffic = None
-
         if self.report.dropped:
             dropped_binaries = self.createBinarieObs(self.report.dropped)
         else:
@@ -438,18 +397,18 @@ class openCTIInterface:
                     target_ref=IDx,
                 )
             )
-        for ATP in AttackPatterns:
-            payload_relations.append(
-                Relationship(
-                    relationship_type="related-to",
-                    source_ref=payload[0].id,
-                    target_ref=ATP,
-                )
+        payload_relations.extend(
+            Relationship(
+                relationship_type="related-to",
+                source_ref=payload[0].id,
+                target_ref=ATP,
             )
+            for ATP in AttackPatterns
+        )
+
         IDs.append(payload[0])  # Add Observeable
         IDs.append(payload[1])  # Add Indicator
-        bundle_ids.append(payload[0])
-        bundle_ids.append(payload[1])
+        bundle_ids.extend((payload[0], payload[1]))
         payload_relations.append(payload[2])
 
         if int(self.report.info.score) >= self.ReportScore:

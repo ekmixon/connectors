@@ -16,7 +16,7 @@ class AlienVaultClient:
 
     def __init__(self, base_url: str, api_key: str) -> None:
         """Initialize AlienVault client."""
-        server = base_url if not base_url.endswith("/") else base_url[:-1]
+        server = base_url[:-1] if base_url.endswith("/") else base_url
 
         self.otx = OTXv2(api_key, server=server)
 
@@ -26,8 +26,4 @@ class AlienVaultClient:
         """Return subscribed pulses."""
         pulse_data = self.otx.getsince(modified_since, limit=limit)
 
-        # with open("pulses.json", "w") as f:
-        #     f.write(json.dumps(pulse_data))
-
-        pulses = parse_obj_as(List[Pulse], pulse_data)
-        return pulses
+        return parse_obj_as(List[Pulse], pulse_data)
